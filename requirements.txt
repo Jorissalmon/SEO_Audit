@@ -1,0 +1,6 @@
+streamlit
+pytesseract
+openai
+spacy
+beautifulsoup
+plotly
