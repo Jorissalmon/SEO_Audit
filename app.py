@@ -22,12 +22,11 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 # # Charger le modèle spaCy pour le traitement NLP
 # try:
-#     nlp=spacy.load("fr_core_news_sm")
+nlp=spacy.load("fr_core_news_sm")
 # except OSError:
 #     # Si le modèle n'est pas installé, téléchargez-le
 # download("fr_core_news_sm")
 # nlp = nlp = spacy.load("./models/fr_core_news_sm")
-print(spacy.util.get_data_path())
 # nlp=spacy.load()
 # Fonction pour nettoyer et filtrer les mots-clés
 def filter_keywords(text):
