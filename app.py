@@ -13,7 +13,7 @@ import spacy
 import plotly.express as px
 import plotly.graph_objects as go
 from statistics import mean
-
+from spacy.cli import download
 # Configurez l'API OpenAI
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 openai.api_key = OPENAI_API_KEY
@@ -21,7 +21,12 @@ st.session_state.OPENAI_API_KEY = OPENAI_API_KEY
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 # Charger le modèle spaCy pour le traitement NLP
-nlp = spacy.load("fr_core_news_sm")
+try:
+    nlp=spacy.load("fr_core_news_sm")
+except OSError:
+    # Si le modèle n'est pas installé, téléchargez-le
+    download("fr_core_news_sm")
+    nlp = nlp = spacy.load("./models/fr_core_news_sm")
 
 # Fonction pour nettoyer et filtrer les mots-clés
 def filter_keywords(text):
