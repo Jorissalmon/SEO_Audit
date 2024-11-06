@@ -2,5 +2,5 @@ streamlit
 pytesseract
 openai
 spacy
-beautifulsoup
+bs4
 plotly
