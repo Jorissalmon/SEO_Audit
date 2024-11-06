@@ -13,7 +13,6 @@ import spacy
 import plotly.express as px
 import plotly.graph_objects as go
 from statistics import mean
-from spacy.cli import download
 # Configurez l'API OpenAI
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 openai.api_key = OPENAI_API_KEY
