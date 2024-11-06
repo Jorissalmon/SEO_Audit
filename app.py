@@ -13,6 +13,7 @@ import spacy
 import plotly.express as px
 import plotly.graph_objects as go
 from statistics import mean
+
 # Configurez l'API OpenAI
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 openai.api_key = OPENAI_API_KEY
@@ -20,13 +21,8 @@ st.session_state.OPENAI_API_KEY = OPENAI_API_KEY
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 # # Charger le modèle spaCy pour le traitement NLP
-# try:
 nlp=spacy.load("fr_core_news_sm")
-# except OSError:
-#     # Si le modèle n'est pas installé, téléchargez-le
-# download("fr_core_news_sm")
-# nlp = nlp = spacy.load("./models/fr_core_news_sm")
-# nlp=spacy.load()
+
 # Fonction pour nettoyer et filtrer les mots-clés
 def filter_keywords(text):
     """Filtre les mots-clés en supprimant les stop words et mots peu pertinents."""
@@ -190,6 +186,7 @@ def get_gpt_recommendations(page, main_keywords):
         f"Voici un extrait du contenu de la page : {page.text_content[:500]}... "
         f"Les mots-clés principaux identifiés sont : {', '.join(main_keywords)}. "
         f"Meta description actuelle : {page.meta_description}. "
+        f"Nombre d eliens sur la page : {len(page.internal_links)}"
         f"En tenant compte des bonnes pratiques SEO et de l'expérience utilisateur (UX), "
         f"fournissez des recommandations pour optimiser le SEO et maximiser l'engagement des lecteurs. "
         f"Identifiez les sections clés où les mots-clés pourraient être intégrés pour un meilleur impact et proposez une meta description optimisée. "
@@ -205,8 +202,7 @@ def get_gpt_recommendations(page, main_keywords):
         f"Voici les images analysées et leur pertinence :\n"
         f"{image_analysis}\n"
         f"S'assurer que les images sont pertinentes par rapport au sujet de la page. Si une image n'est pas en lien avec le contenu, il est recommandé de la remplacer par une image plus appropriée.\n"
-        f"Vérifier l'optimisation des images (taille réduite sans perte de qualité) pour un temps de chargement rapide.\n"
-        f"Recommander des améliorations si nécessaire : par exemple, ajouter un texte alternatif manquant ou remplacer une image inappropriée. S'il n'y a pas d'image, vous dites 'Pas d'images' \n\n"
+        f"Recommander des améliorations si nécessaire : par exemple, ajouter un texte alternatif manquant ou proposer une image inappropriée. Pour ces recommendation, reprenez chaque source, et attribuer des recommendations. S'il n'y a pas d'image, vous dites 'Pas d'images' \n\n"
         f"\n\nGardez la réponse concise et efficace."
     )
 
@@ -281,12 +277,12 @@ def display_average_score_gauge(average_score):
         mode="gauge+number",
         value=average_score,
         title={'text': "Score SEO moyen"},
-        gauge={'axis': {'range': [0, 70]},
+        gauge={'axis': {'range': [0, 100]},
                'bar': {'color': "black"},
                'steps': [
-                   {'range': [0, 20], 'color': "red"},
-                   {'range': [20, 40], 'color': "orange"},
-                   {'range': [40, 70], 'color': "green"}]}))
+                   {'range': [0, 30], 'color': "red"},
+                   {'range': [30, 70], 'color': "orange"},
+                   {'range': [70, 100], 'color': "green"}]}))
     st.plotly_chart(fig)
 
 # Fonction pour créer un treemap des mots-clés
@@ -309,19 +305,41 @@ def display_scoring_criteria():
     st.sidebar.write("Les critères ci-dessous influencent le score SEO pour chaque page :")
     
     criteria = {
-        "Présence du Titre": "10 points si le titre est présent",
-        "Longueur du Titre": "5 points si le titre contient entre 10 et 60 caractères",
-        "Présence de la Meta Description": "10 points si la meta description est présente",
-        "Longueur de la Meta Description": "5 points si la meta description fait 160 caractères ou moins",
-        "Présence du H1": "10 points si un H1 est présent",
-        "Longueur du Contenu": "10 points si le contenu contient au moins 300 mots",
-        "Présence d'Images": "10 points si des images sont présentes",
-        "Présence de Liens Internes": "10 points si des liens internes sont présents"
+        "Présence du Titre": "14.3% si le titre est présent",  # (10 / 70) * 100
+        "Longueur du Titre": "7.1% si le titre contient entre 10 et 60 caractères",  # (5 / 70) * 100
+        "Présence de la Meta Description": "14.3% si la meta description est présente",  # (10 / 70) * 100
+        "Longueur de la Meta Description": "7.1% si la meta description fait 160 caractères ou moins",  # (5 / 70) * 100
+        "Présence du H1": "14.3% si un H1 est présent",  # (10 / 70) * 100
+        "Longueur du Contenu": "14.3% si le contenu contient au moins 300 mots",  # (10 / 70) * 100
+        "Présence d'Images": "14.3% si des images sont présentes",  # (10 / 70) * 100
+        "Présence de Liens Internes": "14.3% si des liens internes sont présents"  # (10 / 70) * 100
     }
 
     for critere, details in criteria.items():
         st.sidebar.write(f"**{critere}** : {details}")
-
+# Fonction pour vérifier les critères d'une page donnée
+def get_zero_score_criteria(page):
+    zero_score_criteria = []
+    
+    # Vérifie chaque critère et ajoute ceux qui sont à zéro
+    if not page.title:
+        zero_score_criteria.append("Présence du Titre")
+    if not (10 <= len(page.title) <= 60):
+        zero_score_criteria.append("Longueur du Titre")
+    if not page.meta_description:
+        zero_score_criteria.append("Présence de la Meta Description")
+    if len(page.meta_description or "") > 160:
+        zero_score_criteria.append("Longueur de la Meta Description")
+    if not page.h1:
+        zero_score_criteria.append("Présence du H1")
+    if len(page.text_content.split()) < 300:
+        zero_score_criteria.append("Longueur du Contenu")
+    if not page.images:
+        zero_score_criteria.append("Présence d'Images")
+    if not page.internal_links:
+        zero_score_criteria.append("Présence de Liens Internes")
+    
+    return zero_score_criteria
 
 # Interface Streamlit
 st.title("Analyse SEO Avancée de Site Web")
@@ -339,7 +357,8 @@ if st.button("Analyser"):
 
     # Calcul du score moyen
     average_score = sum(page.seo_score for page in all_pages) / len(all_pages) if all_pages else 0
-    display_average_score_gauge(average_score)
+    average_score_percent = average_score/70*100
+    display_average_score_gauge(average_score_percent)
 
     # Analyse OCR des images (on applique la méthode `analyze_images_with_ocr()` à chaque page)
     for page in all_pages:
@@ -355,12 +374,15 @@ if st.button("Analyser"):
     st.write("### Pages classées par score SEO (du plus bas au plus élevé)")
     for page in sorted_pages:
         color = f"rgba({255 - int(255 * page.seo_score / 70)}, {int(255 * page.seo_score / 70)}, 0, 0.5)"
-        with st.expander(f"{page.url} - Score SEO : {page.seo_score}/70", expanded=False):
+        zero_score_criteria = get_zero_score_criteria(page)
+
+        with st.expander(f"{page.url} - Score SEO : {page.seo_score}/100", expanded=False):
             st.markdown(
                     f"<div style='background-color:{color}; padding:10px;'>"
                     f"Titre : {page.title}<br>"
                     f"Meta Description : {page.meta_description}<br>"
                     f"H1 : {page.h1}<br>"
+                    f"Nombre de liens : {len(page.internal_links)}"
                     f"</div>", 
                     unsafe_allow_html=True
             )
@@ -370,6 +392,13 @@ if st.button("Analyser"):
             gpt_recommendation = get_gpt_recommendations(page, main_keywords)
             st.write(gpt_recommendation)
 
+            # Afficher les critères avec un score de zéro
+            if zero_score_criteria:
+                st.write("### Critères avec un score de zéro :")
+                for critere in zero_score_criteria:
+                    st.write(f"- {critere}")
+            else:
+                st.write("Tous les critères sont satisfaits.")
 
     all_text_content = " ".join(page.text_content for page in all_pages)
     all_keywords = filter_keywords(all_text_content)
@@ -378,6 +407,6 @@ if st.button("Analyser"):
     overall_gpt_recommendations = generate_seo_summary(all_pages, keyword_counts)
     # Affichage du rapport final
     st.write("### Rapport SEO Global du Site")
-    st.write(f"**Score SEO moyen** : {average_score:.2f}/70")
+    st.write(f"**Score SEO moyen** : {average_score_percent:.2f}/100 sur {len(all_pages)} pages")
     st.write("### Recommandations générales pour le site")
     st.write(overall_gpt_recommendations)
