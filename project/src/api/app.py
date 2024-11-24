@@ -7,8 +7,8 @@ import spacy
 from collections import Counter
 import concurrent.futures
 from datetime import datetime
-from src.chat.llama import message_llama
-from src.chat.recognition_image import analyse_image_llm
+from src.api.chat.llama import message_llama
+from src.api.chat.recognition_image import analyse_image_llm
 from pytrends.request import TrendReq
 import time
 from statistics import mean
